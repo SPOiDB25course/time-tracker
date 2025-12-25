@@ -55,7 +55,7 @@
     }
     
     .schedule-table {
-        min-width: 1000px;
+        min-width: 1200px;
         border-collapse: separate;
         border-spacing: 0;
     }
@@ -75,7 +75,7 @@
     }
     
     .day-column {
-        width: 140px;
+        width: 100px;
         vertical-align: top;
         border-right: 1px solid rgba(248, 181, 209, 0.2);
         position: relative;
@@ -136,6 +136,8 @@
         top: 105px;
         z-index: 70;
     }
+
+
     
     /* Уменьшенные ячейки */
     .time-slot-row {
@@ -546,14 +548,19 @@
                             <tr>
                                 <th class="time-column">Время</th>
                                 {% for day in days %}
-                                <th class="day-column">
+                                <th colspan="2" class="day-column">
                                     <div class="day-header">
                                         {{ day.name }}<br>
                                         <small class="day-date" data-full-date="{{ day.full_date }}">{{ day.date }}</small>
                                     </div>
-                                    <div class="plan-header">План</div>
-                                    <div class="fact-header">Факт</div>
                                 </th>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <th class="time-column"></th>
+                                {% for day in days %}
+                                <th class="plan-header">План</th>
+                                <th class="fact-header">Факт</th>
                                 {% endfor %}
                             </tr>
                         </thead>
@@ -1440,12 +1447,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 factCell.dataset.type = 'fact';
                 factCell.dataset.id = `${day}-${timeString}-fact`;
                 
-                const dayCell = document.createElement('td');
-                dayCell.className = 'day-column';
-                dayCell.appendChild(planCell);
-                dayCell.appendChild(factCell);
-                
-                row.appendChild(dayCell);
+                row.appendChild(planCell);
+                row.appendChild(factCell);
             }
             
             elements.scheduleBody.appendChild(row);
@@ -2062,11 +2065,16 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (Math.abs(currentHour - slotTime) < config.slotMinutes / 120) {
                 // Подсвечиваем текущий слот
-                const planCell = row.children[adjustedDay + 1]?.querySelector('.plan-column');
-                const factCell = row.children[adjustedDay + 1]?.querySelector('.fact-column');
+                // Индекс для плана: 1 + adjustedDay*2, для факта: 1 + adjustedDay*2 + 1
+                const planCellIndex = 1 + adjustedDay * 2;
+                const factCellIndex = planCellIndex + 1;
                 
-                if (planCell) planCell.classList.add('current-time-slot');
-                if (factCell) factCell.classList.add('current-time-slot');
+                if (row.children[planCellIndex]) {
+                    row.children[planCellIndex].classList.add('current-time-slot');
+                }
+                if (row.children[factCellIndex]) {
+                    row.children[factCellIndex].classList.add('current-time-slot');
+                }
             }
         });
     }
@@ -2319,12 +2327,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 const row = elements.scheduleBody.children[startSlot];
                 if (!row) return;
                 
-                const dayCell = row.children[adjustedDay + 1];
-                if (!dayCell) return;
+                // Теперь у нас в строке: time-cell + (7 дней × 2 колонки)
+                // Индекс для плана дня N: 1 + N*2, для факта: 1 + N*2 + 1
+                const planCellIndex = 1 + adjustedDay * 2;
+                const factCellIndex = planCellIndex + 1;
                 
                 const targetCell = event.type === 'plan' ? 
-                    dayCell.querySelector('.plan-column') : 
-                    dayCell.querySelector('.fact-column');
+                    row.children[planCellIndex] : 
+                    row.children[factCellIndex];
                 
                 if (!targetCell) return;
                 
