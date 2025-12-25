@@ -480,10 +480,6 @@
             </div>
             
             <div class="d-flex align-items-center gap-2 flex-wrap">
-                <!-- Кнопка настроек времени -->
-                <button class="btn btn-outline-secondary" id="timeSettingsBtn">
-                    <i class="bi bi-clock"></i>
-                </button>
                 
                 <!-- Улучшенный виджет выбора недели -->
                 <div class="input-group" style="width: 300px;">
@@ -744,40 +740,6 @@
     </div>
 </div>
 
-<!-- Настройки времени -->
-<div class="modal fade" id="timeSettingsModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Настройки времени</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form id="timeSettingsForm">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="startTimeInput" class="form-label">Время начала дня</label>
-                        <input type="time" class="form-control" id="startTimeInput" value="04:00" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="endTimeInput" class="form-label">Время окончания дня</label>
-                        <input type="time" class="form-control" id="endTimeInput" value="22:30" required>
-                    </div>
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" id="saveTimeSettings">
-                        <label class="form-check-label" for="saveTimeSettings">
-                            Сохранить настройки для будущих сессий
-                        </label>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    <button type="submit" class="btn btn-primary">Применить</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
 <!-- Добавление события -->
 <div class="modal fade" id="addEventModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -974,8 +936,8 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Конфигурация
     const config = {
-        startHour: 4,
-        endHour: 22.5,
+        startHour: 0,
+        endHour: 24,
         slotMinutes: 15,
         slotHeight: 25
     };
@@ -1031,8 +993,8 @@ document.addEventListener('DOMContentLoaded', function() {
         isShiftPressed: false,
         lastSelectedCell: null,
         timeSettings: {
-            startHour: localStorage.getItem('startHour') || 4,
-            endHour: localStorage.getItem('endHour') || 22.5
+            startHour: 0,
+            endHour: 24
         }
     };
 
@@ -1429,7 +1391,6 @@ document.addEventListener('DOMContentLoaded', function() {
     init();
     
     async function init() {
-        loadTimeSettings();
         initSchedule();
         initTimeSelects();
         await loadCategories();
@@ -1491,23 +1452,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         updateCurrentTimeHighlight();
-    }
-    
-    // Раздел 1.2: Настройка временного интервала
-    function loadTimeSettings() {
-        const savedStart = localStorage.getItem('scheduleStartTime');
-        const savedEnd = localStorage.getItem('scheduleEndTime');
-        
-        if (savedStart && savedEnd) {
-            const [startH, startM] = savedStart.split(':').map(Number);
-            const [endH, endM] = savedEnd.split(':').map(Number);
-            
-            state.timeSettings.startHour = startH + startM / 60;
-            state.timeSettings.endHour = endH + endM / 60;
-            
-            document.getElementById('startTimeInput').value = savedStart;
-            document.getElementById('endTimeInput').value = savedEnd;
-        }
     }
     
     // Раздел 1.4-1.5: Выбор и групповая обработка ячеек
@@ -2427,10 +2371,6 @@ document.addEventListener('DOMContentLoaded', function() {
         elements.nextWeekBtn.addEventListener('click', nextWeek);
         elements.weekPicker.addEventListener('change', updateWeek);
         
-        // Настройки времени
-        elements.timeSettingsBtn.addEventListener('click', showTimeSettings);
-        document.getElementById('timeSettingsForm').addEventListener('submit', saveTimeSettings);
-        
                 // Шаблоны - СОХРАНЕНИЕ
         elements.saveTemplateBtn.addEventListener('click', () => {
             // Сбрасываем форму
@@ -2646,34 +2586,6 @@ document.addEventListener('DOMContentLoaded', function() {
         updateBalanceWheel();
     }
     
-    function showTimeSettings() {
-        const modal = new bootstrap.Modal(document.getElementById('timeSettingsModal'));
-        modal.show();
-    }
-    
-    function saveTimeSettings(event) {
-        event.preventDefault();
-        
-        const startTime = document.getElementById('startTimeInput').value;
-        const endTime = document.getElementById('endTimeInput').value;
-        const saveSettings = document.getElementById('saveTimeSettings').checked;
-        
-        const [startH, startM] = startTime.split(':').map(Number);
-        const [endH, endM] = endTime.split(':').map(Number);
-        
-        state.timeSettings.startHour = startH + startM / 60;
-        state.timeSettings.endHour = endH + endM / 60;
-        
-        if (saveSettings) {
-            localStorage.setItem('scheduleStartTime', startTime);
-            localStorage.setItem('scheduleEndTime', endTime);
-        }
-        
-        initSchedule();
-        loadEvents();
-        
-        bootstrap.Modal.getInstance(document.getElementById('timeSettingsModal')).hide();
-    }
      
     function showCategoryModal() {
         initColorPicker();
