@@ -1422,7 +1422,6 @@ document.addEventListener('DOMContentLoaded', function() {
         currentWeekBtn: document.getElementById('currentWeekBtn'),
         prevWeekBtn: document.getElementById('prevWeekBtn'),
         nextWeekBtn: document.getElementById('nextWeekBtn'),
-        timeSettingsBtn: document.getElementById('timeSettingsBtn'),
         saveTemplateBtn: document.getElementById('saveTemplateBtn'),
         templatesBtn: document.getElementById('templatesBtn'),
         addCategoryBtn: document.getElementById('addCategoryBtn'),
@@ -2320,7 +2319,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Вспомогательные функции
     async function loadEvents() {
-                try {
+        try {
             const [year, week] = elements.weekPicker.value.split('-W');
             const response = await fetch(`/api/events/week/${year}-W${week.padStart(2, '0')}`);
             
@@ -2335,11 +2334,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             } else {
                 console.error('Ошибка сети при загрузке событий');
+                // Загружаем из localStorage как fallback
+                const weekKey = elements.weekPicker.value;
+                const savedEvents = localStorage.getItem(`events_${weekKey}`);
+                if (savedEvents) {
+                    state.events = JSON.parse(savedEvents);
+                    renderEvents();
+                }
             }
         } catch (error) {
             console.error('Ошибка загрузки событий:', error);
             // Загружаем из localStorage как fallback
-            const savedEvents = localStorage.getItem(`events_${currentWeekKey}`);
+            const weekKey = elements.weekPicker.value;
+            const savedEvents = localStorage.getItem(`events_${weekKey}`);
             if (savedEvents) {
                 state.events = JSON.parse(savedEvents);
                 renderEvents();
@@ -2543,6 +2550,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     
     function initEventHandlers() {
+        console.log('Инициализация обработчиков событий...');
+        console.log('addPlanBtn найден:', !!elements.addPlanBtn);
+        console.log('addFactBtn найден:', !!elements.addFactBtn);
+        console.log('saveTemplateBtn найден:', !!elements.saveTemplateBtn);
+        
+        // Проверяем, что элементы существуют
+        if (!elements.addPlanBtn || !elements.addFactBtn) {
+            console.error('Кнопки не найдены в DOM!');
+            return;
+        }
         // Навигация по неделям
         elements.currentWeekBtn.addEventListener('click', setCurrentWeek);
         elements.prevWeekBtn.addEventListener('click', prevWeek);
