@@ -418,6 +418,28 @@
         background: var(--gradient-secondary) !important;
         color: var(--text-color);
     }
+    /* Стили для кнопок добавления событий */
+    .btn-group .btn-outline-success {
+        border-color: #a7d2cb;
+        color: #2d6a4f;
+    }
+    
+    .btn-group .btn-outline-success:hover {
+        background-color: rgba(167, 210, 203, 0.1);
+        border-color: #a7d2cb;
+        color: #2d6a4f;
+    }
+    
+    .btn-group .btn-outline-primary {
+        border-color: #cdb4db;
+        color: #6d5a8a;
+    }
+    
+    .btn-group .btn-outline-primary:hover {
+        background-color: rgba(205, 180, 219, 0.1);
+        border-color: #cdb4db;
+        color: #6d5a8a;
+    }
     
     /* Адаптивность */
     @media (max-width: 1200px) {
@@ -484,34 +506,43 @@
             </div>
             
             <div class="d-flex align-items-center gap-2 flex-wrap">
-                
-                <!-- Улучшенный виджет выбора недели -->
-                <div class="input-group" style="width: 300px;">
-                    <span class="input-group-text"><i class="bi bi-calendar-week"></i></span>
-                    <input type="week" class="form-control" id="weekPicker">
-                    <button class="btn btn-outline-secondary" type="button" id="prevWeekBtn">
-                        <i class="bi bi-chevron-left"></i>
-                    </button>
-                    <button class="btn btn-outline-secondary" type="button" id="nextWeekBtn">
-                        <i class="bi bi-chevron-right"></i>
-                    </button>
-                    <button class="btn btn-outline-primary" type="button" id="currentWeekBtn">
-                        Сегодня
-                    </button>
+                        <!-- ДОБАВЬТЕ ЭТИ КНОПКИ -->
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-outline-success" id="addPlanBtn">
+                                <i class="bi bi-plus-circle me-1"></i>Добавить план
+                            </button>
+                            <button class="btn btn-outline-primary" id="addFactBtn">
+                                <i class="bi bi-plus-circle me-1"></i>Добавить факт
+                            </button>
+                        </div>
+                        
+                        <!-- Улучшенный виджет выбора недели -->
+                        <div class="input-group" style="width: 300px;">
+                            <span class="input-group-text"><i class="bi bi-calendar-week"></i></span>
+                            <input type="week" class="form-control" id="weekPicker">
+                            <button class="btn btn-outline-secondary" type="button" id="prevWeekBtn">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary" type="button" id="nextWeekBtn">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                            <button class="btn btn-outline-primary" type="button" id="currentWeekBtn">
+                                Сегодня
+                            </button>
+                        </div>
+                        
+                        <!-- Кнопка сохранения как шаблона -->
+                        <button class="btn btn-outline-success" id="saveTemplateBtn">
+                            <i class="bi bi-save me-1"></i>Сохранить как шаблон
+                        </button>
+                        
+                        <!-- Кнопка шаблонов -->
+                        <button class="btn btn-primary" id="templatesBtn">
+                            <i class="bi bi-collection me-1"></i>Шаблоны
+                        </button>
+                    </div>
                 </div>
-                
-                <!-- Кнопка сохранения как шаблона -->
-                <button class="btn btn-outline-success" id="saveTemplateBtn">
-                    <i class="bi bi-save me-1"></i>Сохранить как шаблон
-                </button>
-                
-                <!-- Кнопка шаблонов -->
-                <button class="btn btn-primary" id="templatesBtn">
-                    <i class="bi bi-collection me-1"></i>Шаблоны
-                </button>
             </div>
-        </div>
-    </div>
     
     <!-- Панель массового заполнения -->
     <div class="bulk-edit-panel" id="bulkEditPanel">
@@ -1412,6 +1443,8 @@ document.addEventListener('DOMContentLoaded', function() {
         clearDayBtn: document.getElementById('clearDayBtn'),
         copyDayBtn: document.getElementById('copyDayBtn'),
         statsBtn: document.getElementById('statsBtn')
+        addPlanBtn: document.getElementById('addPlanBtn'),
+        addFactBtn: document.getElementById('addFactBtn')
     };
     
     // Инициализация
@@ -1498,7 +1531,30 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Иначе создаем новое событие в этой ячейке
-        createEventFromCell(cell);
+        const day = parseInt(cell.dataset.day);
+        const time = cell.dataset.time;
+        const type = cell.dataset.type;
+        
+        // Определяем дату на основе выбранной недели
+        const weekStart = getWeekStartDate();
+        const eventDate = new Date(weekStart);
+        eventDate.setDate(weekStart.getDate() + day);
+        
+        // Время начала события
+        const [hours, minutes] = time.split(':').map(Number);
+        const startTime = new Date(eventDate);
+        startTime.setHours(hours, minutes, 0, 0);
+        
+        // Время окончания (+15 минут)
+        const endTime = new Date(startTime);
+        endTime.setMinutes(endTime.getMinutes() + 15);
+        
+        // Открываем форму с предзаполненным временем
+        openAddEventForm(type, {
+            start: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`,
+            end: `${endTime.getHours().toString().padStart(2, '0')}:${endTime.getMinutes().toString().padStart(2, '0')}`,
+            date: eventDate.toISOString().split('T')[0]
+        });
     }
     
     function createEventFromCell(cell) {
@@ -2007,6 +2063,23 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
+
+    function setTimeSelectToNow(selectId, roundType = 'floor') {
+        const select = document.getElementById(selectId);
+        if (!select) return;
+        
+        const now = new Date();
+        const roundedTime = roundToNearest15Minutes(now, roundType);
+        const timeString = `${roundedTime.getHours().toString().padStart(2, '0')}:${roundedTime.getMinutes().toString().padStart(2, '0')}`;
+        
+        // Ищем соответствующую опцию
+        for (let option of select.options) {
+            if (option.value === timeString) {
+                select.value = timeString;
+                break;
+            }
+        }
+    }
     
     // Раздел 2.1-2.2: Очистка верхней панели и улучшение виджета недели
     function updateWeekRange() {
@@ -2396,12 +2469,87 @@ document.addEventListener('DOMContentLoaded', function() {
         localStorage.setItem('scheduleCategories', JSON.stringify(state.categories));
     }
     
+    function openAddEventForm(type = 'plan', presetData = null) {
+        // Сбрасываем форму
+        document.getElementById('addEventForm').reset();
+        
+        // Устанавливаем тип события
+        document.querySelector(`input[name="eventType"][value="${type}"]`).checked = true;
+        
+        if (presetData) {
+            // Если переданы предустановленные данные
+            document.getElementById('startDate').value = presetData.date || new Date().toISOString().split('T')[0];
+            document.getElementById('startTime').value = presetData.start;
+            document.getElementById('endDate').value = presetData.date || new Date().toISOString().split('T')[0];
+            document.getElementById('endTime').value = presetData.end;
+        } else {
+            // Устанавливаем текущую дату
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            
+            document.getElementById('startDate').value = todayStr;
+            document.getElementById('endDate').value = todayStr;
+            
+            // Устанавливаем текущее время, округленное до 15 минут
+            const startTime = roundToNearest15Minutes(today, 'floor');
+            const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // +1 час
+            
+            const startTimeStr = `${startTime.getHours().toString().padStart(2, '0')}:${startTime.getMinutes().toString().padStart(2, '0')}`;
+            const endTimeStr = `${endTime.getHours().toString().padStart(2, '0')}:${endTime.getMinutes().toString().padStart(2, '0')}`;
+            
+            document.getElementById('startTime').value = startTimeStr;
+            document.getElementById('endTime').value = endTimeStr;
+        }
+        
+        // Фокусируемся на выборе категории
+        setTimeout(() => {
+            document.getElementById('categorySelect').focus();
+        }, 100);
+        
+        // Показываем модальное окно
+        const modal = new bootstrap.Modal(document.getElementById('addEventModal'));
+        modal.show();
+    }
+    
+    // Функция для быстрого добавления события
+    async function quickAddEvent(type, categoryName, durationHours = 1, description = '') {
+        const category = state.categories.find(c => 
+            c.name.toLowerCase() === categoryName.toLowerCase()
+        );
+        
+        if (!category) {
+            alert(`Категория "${categoryName}" не найдена. Пожалуйста, создайте её сначала.`);
+            return;
+        }
+        
+        const now = new Date();
+        const startTime = roundToNearest15Minutes(now, 'floor');
+        const endTime = new Date(startTime.getTime() + durationHours * 60 * 60 * 1000);
+        
+        const eventData = {
+            type: type,
+            category_id: category.id,
+            start_time: formatTimeForAPI(startTime),
+            end_time: formatTimeForAPI(endTime),
+            description: description || category.name
+        };
+        
+        const result = await saveEvent(eventData);
+        
+        if (result) {
+            alert(`Событие "${category.name}" добавлено в ${type === 'plan' ? 'План' : 'Факт'}!`);
+        }
+    }
+
+    
     function initEventHandlers() {
         // Навигация по неделям
         elements.currentWeekBtn.addEventListener('click', setCurrentWeek);
         elements.prevWeekBtn.addEventListener('click', prevWeek);
         elements.nextWeekBtn.addEventListener('click', nextWeek);
         elements.weekPicker.addEventListener('change', updateWeek);
+        elements.addPlanBtn.addEventListener('click', () => openAddEventForm('plan'));
+        elements.addFactBtn.addEventListener('click', () => openAddEventForm('fact'));
         
                 // Шаблоны - СОХРАНЕНИЕ
         elements.saveTemplateBtn.addEventListener('click', () => {
@@ -2422,7 +2570,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Сбрасываем форму
             document.getElementById('saveTemplateForm').reset();
             document.getElementById('savePlan').checked = true;
-            document.getElementById('saveFact').checked = true;
+            document.getElementById('saveFact').checked = false;
             
             const modal = new bootstrap.Modal(document.getElementById('saveTemplateModal'));
             modal.show();
@@ -2560,6 +2708,15 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (!eventData.category_id) {
                 alert('Выберите категорию');
+                return;
+            }
+            
+            // Проверяем, что дата начала не позже даты окончания
+            const startDate = new Date(eventData.start_time.replace(' ', 'T'));
+            const endDate = new Date(eventData.end_time.replace(' ', 'T'));
+            
+            if (endDate <= startDate) {
+                alert('Время окончания должно быть позже времени начала');
                 return;
             }
             
